@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#647789">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="FocusList">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>FocusList</title>
+
+<style>
+*{box-sizing:border-box}
+:root{
+  --bg:#eef1f5;--surface:#fff;--text:#26313b;--muted:#71808d;
+  --dark:#647789;--red:#c97979;--orange:#d79a68;--yellow:#d3b86b;
+  --blue:#7d9db5;--green:#7fa18f;--gray:#8b8b8b;
+  --shadow:0 5px 18px rgba(49,62,74,.08)
+}
+body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+background:linear-gradient(135deg,#eef1f5,#f4f1ee 48%,#edf2ef);color:var(--text)}
+.app{width:min(920px,100%);margin:auto;padding:12px 12px 92px}
+header{background:linear-gradient(135deg,#445362,#536575);color:#fff;padding:20px;border-radius:19px;
+margin-bottom:12px;box-shadow:var(--shadow)}
+h1{margin:0 0 5px;font-size:25px} header p{margin:0;opacity:.78}
+.date{margin-top:8px;font-size:13px;opacity:.7}
+.progress{margin-top:12px;background:rgba(255,255,255,.18);height:8px;border-radius:99px;overflow:hidden}
+.bar{height:100%;width:0;background:#d9e6df;transition:.2s}
+.view{display:none}.view.active{display:block}
+.page-title{font-size:23px;font-weight:800;margin:8px 2px 12px;color:#3c4a56}
+.card{background:rgba(255,255,255,.94);border:1px solid rgba(120,135,148,.08);border-radius:16px;
+padding:15px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card h2{margin:0 0 10px;font-size:18px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stat{background:#f8fafb;border-radius:14px;padding:13px;border:1px solid #e8edf0}
+.stat .label{font-size:12px;color:var(--muted)}.stat .value{font-size:20px;font-weight:800;margin-top:4px}
+.stat.green{background:#f3f8f5}.stat.blue{background:#f4f8fb}.stat.beige{background:#fbf7f0}
+.streak{display:flex;align-items:center;justify-content:space-between;gap:12px;background:linear-gradient(135deg,#fff5e9,#f8efe5);border:1px solid #ead8c4;border-radius:16px;padding:15px}
+.streak-main{display:flex;align-items:center;gap:11px}.streak-icon{font-size:31px}.streak-number{font-size:25px;font-weight:850;color:#8b6749}.streak-label{font-size:12px;color:#806f61}.streak-best{text-align:right;font-size:12px;color:#806f61}.streak-best strong{display:block;font-size:16px;color:#665846}
+.sapo{background:linear-gradient(135deg,#f7f1e7,#f4eee4);border:1px solid #e1d5c2;border-radius:16px;padding:16px}
+.sapo strong{display:block;font-size:18px;color:#665846;margin-bottom:5px}.sapo small{color:#7b7064}
+.task{display:flex;align-items:flex-start;gap:10px;padding:10px 3px;border-bottom:1px solid #edf0f2}
+.task:last-child{border-bottom:0}.task input{width:21px;height:21px;margin-top:1px;accent-color:#657b8d}
+.task label{line-height:1.35;flex:1;cursor:pointer}.task.done label{text-decoration:line-through;opacity:.43}
+.section{border-left:6px solid transparent}
+.a{border-left-color:var(--red);background:linear-gradient(90deg,#fff7f7,#fff)}
+.b{border-left-color:var(--orange);background:linear-gradient(90deg,#fff9f3,#fff)}
+.c{border-left-color:var(--yellow);background:linear-gradient(90deg,#fffdf4,#fff)}
+.d{border-left-color:var(--blue);background:linear-gradient(90deg,#f5f9fc,#fff)}
+.e{border-left-color:var(--gray);background:linear-gradient(90deg,#f7f7f7,#fff)}
+.add{display:flex;gap:7px;margin-top:11px}.add input,.form input,.form select{
+min-width:0;flex:1;padding:11px;border:1px solid #dce2e6;border-radius:10px;font-size:15px;background:#fbfcfc;outline:none}
+.add input:focus,.form input:focus,.form select:focus{border-color:#8da2b1;box-shadow:0 0 0 3px rgba(141,162,177,.13)}
+button{border:0;border-radius:10px;padding:11px 14px;background:#647789;color:#fff;font-weight:700;cursor:pointer}
+button.light{background:#e4e9ed;color:#43515d}.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.nav{display:flex;gap:6px;overflow-x:auto;position:sticky;top:0;z-index:10;background:rgba(238,241,245,.92);
+backdrop-filter:blur(10px);padding:7px 0;margin-bottom:12px}
+.nav button{flex:1;min-width:100px;background:#f8f9fa;color:#52606c;border:1px solid #d7dde2;padding:10px 8px}
+.nav button.active{background:#647789;color:#fff;border-color:#647789}
+.form{display:grid;gap:8px}.form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.money-row{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid #edf0f2}
+.money-row:last-child{border-bottom:0}.money-in{color:#638d76}.money-out{color:#b36d6d}
+.empty{text-align:center;padding:25px 10px;color:#87939d}
+.goal{margin-bottom:14px}.goal-head{display:flex;justify-content:space-between;gap:10px;font-weight:700}
+.goal-meta{font-size:12px;color:var(--muted);margin:4px 0 7px}.goalbar{height:9px;background:#e9edf0;border-radius:99px;overflow:hidden}
+.goalbar span{display:block;height:100%;background:#8da898;border-radius:99px}
+.habit{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #edf0f2}.habit:last-child{border:0}
+.bottom{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.94);backdrop-filter:blur(12px);
+border-top:1px solid #dde3e7;display:flex;justify-content:center;z-index:20;padding:7px 8px calc(7px + env(safe-area-inset-bottom))}
+.bottom-inner{width:min(920px,100%);display:flex;gap:5px}.bottom button{flex:1;background:transparent;color:#6d7a85;padding:7px 4px;font-size:11px}
+.bottom button span{display:block;font-size:20px;line-height:22px}.bottom button.active{color:#435868}
+.small{font-size:12px;color:var(--muted)}
+@media(max-width:600px){.app{padding:9px 9px 90px}.grid{grid-template-columns:1fr 1fr}.stat:last-child{grid-column:1/-1}.form-row{grid-template-columns:1fr}}
+</style>
+</head>
+
+<body>
+<div class="app">
+<header>
+  <h1>🐸 FocusList</h1>
+  <p>Tu centro de control personal</p>
+  <div class="date" id="date"></div>
+  <div class="progress"><div class="bar" id="bar"></div></div>
+</header>
+
+<nav class="nav">
+  <button class="active" data-view="home">🏠 Inicio</button>
+  <button data-view="tasks">✅ Tareas</button>
+  <button data-view="money">💰 Dinero</button>
+  <button data-view="goals">🎯 Objetivos</button>
+  <button data-view="more">⚙️ Más</button>
+</nav>
+
+<main>
+  <section id="home" class="view active"></section>
+  <section id="tasks" class="view"></section>
+  <section id="money" class="view"></section>
+  <section id="goals" class="view"></section>
+  <section id="more" class="view"></section>
+</main>
+</div>
+
+<nav class="bottom">
+  <div class="bottom-inner">
+    <button class="active" data-view="home"><span>🏠</span>Inicio</button>
+    <button data-view="tasks"><span>✅</span>Tareas</button>
+    <button data-view="money"><span>💰</span>Dinero</button>
+    <button data-view="goals"><span>🎯</span>Objetivos</button>
+    <button data-view="more"><span>⚙️</span>Más</button>
+  </div>
+</nav>
+
+<script>
+const KEYS={master:"focuslist-master-v2",days:"focuslist-days-v2",money:"focuslist-money-v1",goals:"focuslist-goals-v1",habits:"focuslist-habits-v1"};
+
+const masterInitial={
+ A:["Revisar todas las tareas pendientes de la facultad","Ordenar las tareas por fecha de entrega","Avanzar el trabajo práctico del sábado","Hacer las actividades pendientes","Entender los temas que no comprendo"],
+ B:["Responder clientes","Organizar stock","Mejorar Discord para las ventas","Subir contenido a TikTok","Subir videos a YouTube","Ahorrar parte de lo que gane"],
+ C:["Hacer ejercicio","Dormir mejor","Ordenar la PC","Ordenar contraseñas y cuentas","Limpiar","Comprar ropa","Cortarme el pelo","Sacar la licencia de conducir"],
+ D:[],E:["Reducir tiempo perdido en redes","Evitar gastos innecesarios","No saltar entre tareas constantemente"]
+};
+
+let master=load(KEYS.master,null);
+if(!master) master=Object.fromEntries(Object.entries(masterInitial).map(([k,v])=>[k,v.map(text=>({text,done:false}))]));
+let days=load(KEYS.days,{});
+let money=load(KEYS.money,{
+  balance:0,
+  savings:0,
+  invested:0,
+  roblox:0,
+  reserves:{
+    work:0,
+    emergency:0,
+    goals:0,
+    other:0
+  },
+  movements:[]
+});
+money.reserves=money.reserves||{work:0,emergency:0,personal:0};
+if(money.reserves.personal===undefined){
+  money.reserves.personal=(Number(money.reserves.personal)||0)+(Number(money.reserves.personal)||0);
+}
+money.reserves={
+  work:Number(money.reserves.work)||0,
+  emergency:Number(money.reserves.emergency)||0,
+  personal:Number(money.reserves.personal)||0
+};
+
+money.balance=Number(money.balance)||0;
+money.savings=(Number(money.reserves.work)||0)+(Number(money.reserves.emergency)||0)+(Number(money.reserves.personal)||0);
+money.invested=Number(money.invested)||0;
+money.roblox=Number(money.roblox)||0;
+money.gains=Number(money.gains)||0;
+money.reserves=money.reserves||{work:0,emergency:0,goals:0,other:0};
+money.autoSplit=money.autoSplit||{work:50,emergency:20,personal:30};
+if(money.autoSplit.work===undefined||money.autoSplit.emergency===undefined||money.autoSplit.personal===undefined){
+  money.autoSplit={work:50,emergency:20,personal:30};
+}
+if(money.autoSplit.gains===undefined){
+  money.autoSplit={...money.autoSplit,balance:Math.max(0,(Number(money.autoSplit.balance)||40)-10),gains:10};
+}
+if(!money.reserves || Object.keys(money.reserves).length===0){
+  money.reserves={work:0,emergency:0,goals:Number(money.savings)||0,other:0};
+}
+money.savings=(Number(money.reserves.work)||0)+(Number(money.reserves.emergency)||0)+(Number(money.reserves.personal)||0);
+
+let goals=load(KEYS.goals,[]);
+let habits=load(KEYS.habits,[
+ {text:"📚 Estudiar",done:false},{text:"💪 Ejercicio",done:false},
+ {text:"📱 Subir contenido",done:false},{text:"😴 Dormir a horario",done:false}
+]);
+
+function load(key,fallback){try{const x=JSON.parse(localStorage.getItem(key));return x??fallback}catch{return fallback}}
+function persist(){localStorage.setItem(KEYS.master,JSON.stringify(master));localStorage.setItem(KEYS.days,JSON.stringify(days));localStorage.setItem(KEYS.money,JSON.stringify(money));localStorage.setItem(KEYS.goals,JSON.stringify(goals));localStorage.setItem(KEYS.habits,JSON.stringify(habits))}
+function save(){persist();render()}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
+function moneyFmt(n){return new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(Number(n)||0)}
+function dateKey(offset=0){const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+offset);return d.toISOString().slice(0,10)}
+function prettyDate(key){return new Intl.DateTimeFormat("es-AR",{weekday:"long",day:"numeric",month:"long"}).format(new Date(key+"T12:00:00"))}
+function allTasks(){return [...Object.values(days).flat(),...Object.values(master).flat()]}
+
+function getStreak(){
+  const completedDays = new Set();
+  Object.entries(days).forEach(([key,tasks])=>{
+    if(tasks.some(task=>task.done)) completedDays.add(key);
+  });
+
+  const today = new Date();
+  today.setHours(12,0,0,0);
+
+  let current = 0;
+  let cursor = new Date(today);
+
+  // If today is not completed yet, count from yesterday.
+  const todayKey = cursor.toISOString().slice(0,10);
+  if(!completedDays.has(todayKey)){
+    cursor.setDate(cursor.getDate()-1);
+  }
+
+  while(true){
+    const key = cursor.toISOString().slice(0,10);
+    if(!completedDays.has(key)) break;
+    current++;
+    cursor.setDate(cursor.getDate()-1);
+  }
+
+  const sorted = [...completedDays].sort();
+  let best = 0;
+  let run = 0;
+  let previous = null;
+
+  sorted.forEach(key=>{
+    if(previous){
+      const a = new Date(previous+"T12:00:00");
+      const b = new Date(key+"T12:00:00");
+      const diff = Math.round((b-a)/86400000);
+      if(diff===1) run++;
+      else run=1;
+    }else{
+      run=1;
+    }
+    if(run>best) best=run;
+    previous=key;
+  });
+
+  return {current,best};
+}
+
+function renderHome(){
+ const today=days[dateKey()]||[], sapo=today.find(x=>x.sapo), open=today.filter(x=>!x.done).length;
+ const work=Number(money.reserves?.work)||0;
+ const emergency=Number(money.reserves?.emergency)||0;
+ const personal=Number(money.reserves?.personal)||0;
+ const total=work+emergency+personal;
+
+ return `<div class="page-title">🏠 Inicio</div>
+ <div class="sapo">
+ <strong>🐸 Tu SAPO / A1</strong>
+ <small>Elegí una tarea que ya tengas y convertíla en tu prioridad principal.</small>
+ ${sapo
+ ? `<div class="task"><input type="checkbox" ${sapo.done?"checked":""} onchange="toggleSapo()"><label>${esc(sapo.text)}</label></div>
+    <div class="actions"><button class="light" onclick="removeSapo()">Cambiar SAPO</button></div>`
+ : `<div class="add">
+      <select id="sapoSelect" style="min-width:0;flex:1;padding:11px;border:1px solid #dce2e6;border-radius:10px;font-size:15px;background:#fbfcfc;outline:none">
+        <option value="">Elegí una tarea para hacer primero...</option>
+        ${today.filter(x=>!x.done&&!x.sapo).map((t,i)=>`<option value="day:${i}">${esc(t.text)}</option>`).join("")}
+        ${master.A.map((t,i)=>`<option value="master:${i}">🔴 ${esc(t.text)}</option>`).join("")}
+      </select>
+      <button onclick="chooseSapo()">Elegir</button>
+    </div>
+    <div class="small" style="margin-top:8px">También podés elegir una tarea A de la lista maestra y traerla automáticamente a hoy.</div>`}
+ </div>
+
+ <div class="card">
+   <h2>💰 Mi dinero</h2>
+
+   <div class="stat" style="margin-bottom:10px;background:#f7f8fa">
+     <div class="label">Total</div>
+     <div class="value">${moneyFmt(total)}</div>
+   </div>
+
+   <div class="grid">
+     <div class="stat">
+       <div class="label">🛠️ Capital de trabajo</div>
+       <div class="value">${moneyFmt(work)}</div>
+     </div>
+
+     <div class="stat">
+       <div class="label">🚨 Emergencias</div>
+       <div class="value">${moneyFmt(emergency)}</div>
+     </div>
+
+     <div class="stat green">
+       <div class="label">💸 Gastos personales</div>
+       <div class="value">${moneyFmt(personal)}</div>
+     </div>
+   </div>
+ </div>
+
+ <div class="card">
+   <h2>📊 Resumen de hoy</h2>
+   <div class="stat">
+     <div class="label">Tareas pendientes</div>
+     <div class="value">${open}</div>
+   </div>
+ </div>
+
+ <div class="streak">
+   <div class="streak-main">
+     <div class="streak-icon">🔥</div>
+     <div>
+       <div class="streak-number">${getStreak().current} ${getStreak().current===1?"día":"días"}</div>
+       <div class="streak-label">Racha actual · completá al menos una tarea por día</div>
+     </div>
+   </div>
+   <div class="streak-best">Mejor racha<strong>${getStreak().best} ${getStreak().best===1?"día":"días"}</strong></div>
+ </div>
+
+ <div class="card">
+   <h2>🎯 Objetivos</h2>
+   ${goals.length
+     ? goals.slice(0,3).map(goalHTML).join("")
+     : `<div class="empty">Todavía no tenés objetivos. Agregalos en 🎯 Objetivos.</div>`}
+ </div>`;
+}
+
+function goalHTML(g){
+ const current=Number(g.current)||0;
+ const pct=Math.max(0,Math.min(100,Number(g.target)?current/Number(g.target)*100:0));
+ return `<div class="goal"><div class="goal-head"><span>${esc(g.name)}</span><span>${Math.round(pct)}%</span></div><div class="goal-meta">${moneyFmt(current)} / ${moneyFmt(g.target)}</div><div class="goalbar"><span style="width:${pct}%"></span></div></div>`;
+}
+
+function renderTasks(){
+ return `<div class="page-title">✅ Tareas</div>
+ <div class="card"><div class="nav" style="position:static;background:none;padding:0;margin:0 0 10px">
+ <button class="active" onclick="showTaskTab('today',this)">📅 Hoy</button><button onclick="showTaskTab('tomorrow',this)">➡️ Mañana</button><button onclick="showTaskTab('week',this)">🗓️ Próximos</button><button onclick="showTaskTab('master',this)">📚 Maestra</button>
+ </div><div id="taskTab"></div></div>`;
+}
+
+function renderDay(offset){
+ const key=dateKey(offset),list=days[key]||[];
+ let html=`<h2>${offset===0?"📅 Hoy":offset===1?"➡️ Mañana":prettyDate(key)}</h2>`;
+ if(offset===0){
+  const sapo=list.find(x=>x.sapo);
+  html+=`<div class="sapo" style="margin-bottom:12px"><strong>🐸 Tu SAPO</strong><small>La tarea A1 más importante.</small>
+  ${sapo
+ ? `<div class="task"><input type="checkbox" ${sapo.done?"checked":""} onchange="toggleSapo()"><label>${esc(sapo.text)}</label></div>`
+ : `<div class="add">
+      <select id="sapoTask" style="min-width:0;flex:1;padding:11px;border:1px solid #dce2e6;border-radius:10px;font-size:15px;background:#fbfcfc;outline:none">
+        <option value="">Elegí una tarea para A1...</option>
+        ${list.filter(x=>!x.done&&!x.sapo).map((t,i)=>`<option value="day:${i}">${esc(t.text)}</option>`).join("")}
+        ${master.A.map((t,i)=>`<option value="master:${i}">🔴 ${esc(t.text)}</option>`).join("")}
+      </select>
+      <button onclick="addSapoFromTask()">Elegir</button>
+    </div>`}</div>`;
+ }
+ html+=`<div class="section card"><h2>🎯 Tareas del día</h2>`;
+ if(!list.filter(x=>!x.sapo).length) html+=`<div class="empty">Todavía no agregaste tareas.</div>`;
+ list.forEach((t,i)=>{if(t.sapo)return;html+=`<div class="task ${t.done?"done":""}"><input type="checkbox" ${t.done?"checked":""} onchange="toggleDay('${key}',${i})"><label>${esc(t.text)}</label></div>`});
+ html+=`<div class="add"><input id="dayInput${offset}" placeholder="Agregar tarea..."><button onclick="addDay('${key}',${offset})">+</button></div></div>
+ <div class="actions"><button onclick="clearDay('${key}')">Limpiar completadas</button></div>`;
+ return html;
+}
+function renderMaster(){
+ let h=`<h2>📚 Lista maestra</h2><p class="small">Acá está todo. Elegí desde acá qué llevar a cada día.</p>`;
+ const names={A:"🔴 A — DEBO HACERLO",B:"🟠 B — IMPORTANTE",C:"🟡 C — ESTARÍA BUENO",D:"🔵 D — DELEGAR",E:"⚫ E — ELIMINAR"};
+ for(const c of ["A","B","C","D","E"]){
+  h+=`<div class="section card ${c.toLowerCase()}"><h2>${names[c]}</h2>`;
+  if(!master[c].length)h+=`<div class="empty">Vacío.</div>`;
+  master[c].forEach((t,i)=>h+=`<div class="task ${t.done?"done":""}"><input type="checkbox" ${t.done?"checked":""} onchange="toggleMaster('${c}',${i})"><label>${esc(t.text)}</label></div>`);
+  h+=`<div class="add"><input id="master${c}" placeholder="Agregar tarea..."><button onclick="addMaster('${c}')">+</button></div></div>`;
+ }
+ h+=`<button class="light" onclick="clearMaster()">Limpiar completadas</button>`;
+ return h;
+}
+function showTaskTab(tab,btn){
+ document.querySelectorAll("#tasks .nav button").forEach(x=>x.classList.remove("active"));btn.classList.add("active");
+ const el=document.getElementById("taskTab");
+ if(tab==="today")el.innerHTML=renderDay(0); else if(tab==="tomorrow")el.innerHTML=renderDay(1); else if(tab==="week")el.innerHTML=[2,3,4,5,6,7].map(renderDay).join(""); else el.innerHTML=renderMaster();
+}
+
+function chooseSapo(){
+ const select=document.getElementById("sapoSelect");
+ const value=select?.value;
+ if(!value)return alert("Elegí una tarea primero.");
+ const key=dateKey();
+ days[key]=days[key]||[];
+ days[key]=days[key].filter(x=>!x.sapo);
+
+ if(value.startsWith("day:")){
+   const index=Number(value.split(":")[1]);
+   const task=days[key].filter(x=>!x.sapo&&!x.done)[index];
+   if(!task)return;
+   task.sapo=true;
+   days[key].unshift(days[key].splice(days[key].indexOf(task),1)[0]);
+ }else if(value.startsWith("master:")){
+   const index=Number(value.split(":")[1]);
+   const task=master.A[index];
+   if(!task)return;
+   days[key].unshift({text:task.text,done:false,sapo:true});
+ }
+ save();
+}
+
+function removeSapo(){
+ const key=dateKey();
+ days[key]=(days[key]||[]).map(x=>x.sapo?{...x,sapo:false}:x);
+ save();
+}
+
+function addSapo(){
+ const input=document.getElementById("homeSapo"),text=input?.value.trim();if(!text)return;
+ const key=dateKey();days[key]=days[key]||[];days[key]=days[key].filter(x=>!x.sapo);days[key].unshift({text,done:false,sapo:true});save();
+}
+function addSapoFromTask(){
+ const select=document.getElementById("sapoTask"),value=select?.value;
+ if(!value)return alert("Elegí una tarea primero.");
+ const key=dateKey();days[key]=days[key]||[];days[key]=days[key].filter(x=>!x.sapo);
+ if(value.startsWith("day:")){
+   const index=Number(value.split(":")[1]);
+   const available=days[key].filter(x=>!x.done&&!x.sapo);
+   const task=available[index];
+   if(!task)return;
+   task.sapo=true;
+   days[key].unshift(days[key].splice(days[key].indexOf(task),1)[0]);
+ }else{
+   const index=Number(value.split(":")[1]);
+   const task=master.A[index];
+   if(!task)return;
+   days[key].unshift({text:task.text,done:false,sapo:true});
+ }
+ save();
+}
+function toggleSapo(){const t=(days[dateKey()]||[]).find(x=>x.sapo);if(t){t.done=!t.done;save()}}
+function addDay(key,offset){const i=document.getElementById("dayInput"+offset),text=i?.value.trim();if(!text)return;days[key]=days[key]||[];days[key].push({text,done:false,sapo:false});save()}
+function toggleDay(key,i){days[key][i].done=!days[key][i].done;save()}
+function clearDay(key){days[key]=(days[key]||[]).filter(x=>!x.done);save()}
+function addMaster(c){const i=document.getElementById("master"+c),text=i?.value.trim();if(!text)return;master[c].push({text,done:false});save()}
+function toggleMaster(c,i){master[c][i].done=!master[c][i].done;save()}
+function clearMaster(){for(const c of Object.keys(master))master[c]=master[c].filter(x=>!x.done);save()}
+
+function renderMoney(){
+ const reserves=money.reserves||{work:0,emergency:0,personal:0};
+ const work=Number(reserves.work)||0;
+ const emergency=Number(reserves.emergency)||0;
+ const personal=Number(reserves.personal)||0;
+ const total=work+emergency+personal;
+
+ return `<div class="page-title">💰 Dinero</div>
+
+ <div class="card">
+   <h2>🏦 Mis reservas</h2>
+   <div class="money-row"><div><strong>🛠️ Capital de trabajo</strong><div class="small">Para mantener tu actividad y ventas.</div></div><strong>${moneyFmt(work)}</strong></div>
+   <div class="money-row"><div><strong>🚨 Emergencias</strong><div class="small">Reserva para imprevistos.</div></div><strong>${moneyFmt(emergency)}</strong></div>
+   <div class="money-row"><div><strong>💸 Gastos personales</strong><div class="small">Dinero disponible para gastar en vos.</div></div><strong>${moneyFmt(personal)}</strong></div>
+   <div class="money-row"><strong>Total</strong><strong>${moneyFmt(total)}</strong></div>
+ </div>
+
+ <div class="card">
+   <h2>➕ Registrar movimiento</h2>
+   <div class="form">
+     <div class="form-row">
+       <select id="mType" onchange="updateMoneyTypeUI()">
+         <option value="income">💵 Ingreso</option>
+         <option value="expense">💸 Gasto</option>
+         <option value="personal">🛍️ Gasto personal</option>
+         <option value="saving">🏦 Mover a reserva</option>
+         <option value="withdraw_saving">↩️ Retirar de reserva</option>
+       </select>
+       <input id="mAmount" type="number" min="0" placeholder="Monto">
+     </div>
+     <div class="form-row">
+       <input id="mDesc" placeholder="Descripción">
+       <select id="mCat">
+         <option value="Trabajo">Trabajo</option>
+         <option value="Ventas">Ventas</option>
+         <option value="TikTok">TikTok</option>
+         <option value="Universidad">Universidad</option>
+         <option value="Comida">Comida</option>
+         <option value="Transporte">Transporte</option>
+         <option value="Ropa">Ropa</option>
+         <option value="Otros">Otros</option>
+       </select>
+     </div>
+     <select id="mReserve" style="display:none;width:100%;padding:11px;border:1px solid #dce2e6;border-radius:10px;font-size:15px;background:#fbfcfc;margin-bottom:10px">
+       <option value="work">🛠️ Capital de trabajo</option>
+       <option value="emergency">🚨 Emergencias</option>
+       <option value="personal">💸 Gastos personales</option>
+     </select>
+     <button onclick="handleMoneyMovement()">Guardar movimiento</button>
+   </div>
+ </div>
+
+ <div class="card">
+   <h2>📜 Movimientos</h2>
+   ${money.movements.length
+     ? money.movements.slice().reverse().map(m=>`<div class="money-row"><div><strong>${esc(m.desc)}</strong><div class="small">${esc(m.cat)} · ${esc(m.date)}${m.destination?" · "+esc(m.destination):""}</div></div><strong class="${m.sign>0?"money-in":"money-out"}">${m.sign>0?"+":"-"}${moneyFmt(m.amount)}</strong></div>`).join("")
+     : `<div class="empty">Todavía no registraste movimientos.</div>`}
+ </div>`;
+}
+
+function configureAutoSplit(){
+ const s=money.autoSplit||{work:50,emergency:20,personal:30};
+ const work=Number(prompt("Porcentaje para Capital de trabajo:",s.work)); if(!Number.isFinite(work)||work<0)return;
+ const emergency=Number(prompt("Porcentaje para Emergencias:",s.emergency)); if(!Number.isFinite(emergency)||emergency<0)return;
+ const personal=Number(prompt("Porcentaje para Gastos personales:",s.personal)); if(!Number.isFinite(personal)||personal<0)return;
+ const total=work+emergency+personal;
+ if(total!==100)return alert(`Los porcentajes deben sumar 100%. Ahora suman ${total}%.`);
+ money.autoSplit={work,emergency,personal};
+ save();
+}
+
+function updateMoneyForm(){
+ const type=document.getElementById("mType")?.value;
+ const chooser=document.getElementById("reserveChooser");
+ const incomeInfo=document.getElementById("incomeInfo");
+ const personalInfo=document.getElementById("personalInfo");
+
+ if(chooser){
+   chooser.style.display=(type==="saving"||type==="withdraw_saving")?"block":"none";
+   document.getElementById("mReserve").innerHTML=`
+     <option value="work">🛠️ Capital de trabajo</option>
+     <option value="emergency">🚨 Emergencias</option>
+     <option value="goals">🎯 Objetivos</option>
+     <option value="other"></option>`;
+ }
+ if(incomeInfo)incomeInfo.style.display=type==="income"?"block":"none";
+ if(personalInfo)personalInfo.style.display=type==="personal"?"block":"none";
+}
+
+function handleMoneyMovement(){
+ const type=document.getElementById("mType")?.value;
+ if(type==="income") return addIncome();
+ const amount=Number(document.getElementById("mAmount")?.value);
+ const desc=document.getElementById("mDesc")?.value.trim()||"Movimiento";
+ const cat=document.getElementById("mCat")?.value||"Otros";
+ const reserve=document.getElementById("mReserve")?.value||"work";
+
+ if(!amount||amount<0)return alert("Ingresá un monto válido.");
+
+ if(type==="expense"){
+   // Gasto general: se descuenta de Gastos personales.
+   if((Number(money.reserves.personal)||0)<amount)return alert("No tenés suficiente dinero en Gastos personales.");
+   money.reserves.personal-=amount;
+   money.movements.push({type,amount,desc,cat,date:new Date().toLocaleDateString("es-AR"),sign:-1,destination:"💸 Gastos personales"});
+ }
+
+ if(type==="personal"){
+   if((Number(money.reserves.personal)||0)<amount)return alert("No tenés suficiente dinero en Gastos personales.");
+   money.reserves.personal-=amount;
+   money.movements.push({type,amount,desc,cat,date:new Date().toLocaleDateString("es-AR"),sign:-1,destination:"💸 Gastos personales"});
+ }
+
+ if(type==="saving"){
+   if((Number(money.reserves.personal)||0)<amount)return alert("Para mover dinero necesitás tenerlo en Gastos personales.");
+   money.reserves.personal-=amount;
+   money.reserves[reserve]=(Number(money.reserves[reserve])||0)+amount;
+   money.movements.push({type,amount,desc,cat,date:new Date().toLocaleDateString("es-AR"),sign:-1,destination:`➡️ ${reserve==="work"?"🛠️ Capital de trabajo":reserve==="emergency"?"🚨 Emergencias":"💸 Gastos personales"}`});
+ }
+
+ if(type==="withdraw_saving"){
+   if((Number(money.reserves[reserve])||0)<amount)return alert("Esa reserva no tiene suficiente dinero.");
+   money.reserves[reserve]-=amount;
+   money.reserves.personal+=amount;
+   money.movements.push({type,amount,desc,cat,date:new Date().toLocaleDateString("es-AR"),sign:1,destination:"💸 Gastos personales"});
+ }
+
+ save();
+}
+
+function updateMoneyTypeUI(){
+ const type=document.getElementById("mType")?.value;
+ const reserve=document.getElementById("mReserve");
+ if(reserve) reserve.style.display=(type==="saving"||type==="withdraw_saving")?"block":"none";
+}
+function addIncome(){
+ const amount=Number(document.getElementById("mAmount").value);
+ const desc=document.getElementById("mDesc").value.trim()||"Ingreso";
+ const cat=document.getElementById("mCat")?.value||"Trabajo";
+ if(!amount||amount<0)return alert("Ingresá un monto válido.");
+
+ const s=money.autoSplit||{work:50,emergency:20,personal:30};
+ const totalPct=Number(s.work)+Number(s.emergency)+Number(s.personal);
+ if(totalPct!==100)return alert("Configurá la distribución para que sume 100%.");
+
+ const work=amount*s.work/100;
+ const emergency=amount*s.emergency/100;
+ const personal=amount*s.personal/100;
+
+ money.reserves.work=(Number(money.reserves.work)||0)+work;
+ money.reserves.emergency=(Number(money.reserves.emergency)||0)+emergency;
+ money.reserves.personal=(Number(money.reserves.personal)||0)+personal;
+
+ // Objetivo general: suma el ingreso completo como progreso, sin descontar dinero.
+ if(goals.length){
+   goals[0].current=(Number(goals[0].current)||0)+amount;
+ }
+
+ money.movements.push({
+   type:"income",amount,desc,cat,date:new Date().toLocaleDateString("es-AR"),sign:1,
+   destination:`Automático: ${s.work}% capital de trabajo · ${s.emergency}% emergencias · ${s.personal}% gastos personales`
+ });
+ save();
+}
+
+function setBalance(which){
+ const label=which==="savings"?"ahorrado":"invertido",current=money[which];
+ const value=prompt(`¿Cuánto tenés ${label} actualmente?`,String(current));
+ if(value===null)return;const n=Number(value);if(Number.isNaN(n)||n<0)return alert("Monto inválido.");money[which]=n;save();
+}
+
+function renderGoals(){
+ return `<div class="page-title">🎯 Objetivos</div>
+ <div class="card"><h2>Mis objetivos</h2><p class="small">Tu fondo general 🎯 Objetivos se suma automáticamente a tu objetivo. No tenés que elegirlo cada vez que entra dinero.</p>${goals.length?goals.map((g,i)=>`${goalHTML(g)}<div class="actions"><button class="light" onclick="updateGoal(${i})">Actualizar meta</button><button class="light" onclick="deleteGoal(${i})">Eliminar</button></div>`).join(""):`<div class="empty">Agregá tu primer objetivo.</div>`}</div>
+ <div class="card"><h2>➕ Nuevo objetivo</h2><p class="small">El dinero que ya tengas acumulado en 🎯 Objetivos se tomará automáticamente como progreso inicial.</p><div class="form"><input id="goalName" placeholder="Ej: Tener $500.000"><input id="goalTarget" type="number" min="1" placeholder="Meta"><button onclick="addGoal()">Crear objetivo</button></div></div>`;
+}
+function addGoal(){
+ const name=document.getElementById("goalName").value.trim(),target=Number(document.getElementById("goalTarget").value);
+ if(!name||!target||target<1)return alert("Completá nombre y meta.");
+ const current=0;
+ goals.push({name,current,target});save();
+}
+function updateGoal(i){const v=prompt("¿Cuál es la nueva meta?",String(goals[i].target));if(v===null)return;const n=Number(v);if(!Number.isFinite(n)||n<1)return alert("Meta inválida.");goals[i].target=n;save()}
+function deleteGoal(i){if(confirm("¿Eliminar este objetivo?")){goals.splice(i,1);save()}}
+
+function renderAutoSplitSettings(){
+ const s=money.autoSplit||{work:50,emergency:20,personal:30};
+ const total=Number(s.work)+Number(s.emergency)+Number(s.personal);
+
+ return `
+   <div class="money-row"><span>🛠️ Capital de trabajo</span><strong>${s.work}%</strong></div>
+   <div class="money-row"><span>🚨 Emergencias</span><strong>${s.emergency}%</strong></div>
+   <div class="money-row"><span>💸 Gastos personales</span><strong>${s.personal}%</strong></div>
+   <div class="small" style="margin-top:8px">Total configurado: <strong>${total}%</strong></div>
+   <div class="actions"><button onclick="configureAutoSplit()">⚙️ Cambiar porcentajes</button></div>
+ `;
+}
+
+function renderMore(){
+ return `<div class="page-title">⚙️ Más</div>
+ <div class="card"><h2>💪 Hábitos de hoy</h2>${habits.map((h,i)=>`<div class="habit"><input type="checkbox" ${h.done?"checked":""} onchange="toggleHabit(${i})"><span>${esc(h.text)}</span></div>`).join("")}<div class="add"><input id="habitInput" placeholder="Agregar hábito..."><button onclick="addHabit()">+</button></div></div>
+ <div class="card"><h2>📊 Estadísticas</h2><p class="small">🔥 Racha actual: <strong>${getStreak().current} ${getStreak().current===1?"día":"días"}</strong></p><p class="small">🏆 Mejor racha: <strong>${getStreak().best} ${getStreak().best===1?"día":"días"}</strong></p><p class="small">Tareas completadas: ${allTasks().filter(x=>x.done).length}</p><p class="small">Movimientos registrados: ${money.movements.length}</p><p class="small">Objetivos activos: ${goals.length}</p></div>
+
+ <div class="card"><h2>⚙️ Configuración del dinero</h2>
+   <p class="small">Configurá una sola vez cómo querés repartir cada ingreso. Después solo ingresás el monto y FocusList lo divide automáticamente.</p>
+   ${renderAutoSplitSettings()}
+ </div>
+ <div class="card"><h2>📤 Datos</h2><p class="small">Podés descargar una copia de tus datos para guardarla.</p><div class="actions"><button onclick="exportData()">Exportar datos</button><button class="light" onclick="resetAll()">Restablecer aplicación</button></div></div>`;
+}
+function toggleHabit(i){habits[i].done=!habits[i].done;save()}
+function addHabit(){const i=document.getElementById("habitInput"),text=i?.value.trim();if(!text)return;habits.push({text,done:false});save()}
+function exportData(){
+ const data={master,days,money,goals,habits,exportedAt:new Date().toISOString()};
+ const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+ const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="focuslist-backup.json";a.click();URL.revokeObjectURL(url);
+}
+function resetAll(){
+ if(!confirm("¿Restablecer toda la aplicación? Esto borra tus datos locales."))return;
+ Object.values(KEYS).forEach(k=>localStorage.removeItem(k));location.reload();
+}
+
+function switchView(view){
+ document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
+ document.getElementById(view).classList.add("active");
+ document.querySelectorAll(".nav button,.bottom button").forEach(x=>x.classList.toggle("active",x.dataset.view===view));
+ if(view==="home")document.getElementById("home").innerHTML=renderHome();
+ if(view==="tasks"){document.getElementById("tasks").innerHTML=renderTasks();showTaskTab("today",document.querySelector("#tasks .nav button"))}
+ if(view==="money"){
+ document.getElementById("money").innerHTML=renderMoney();
+ updateMoneyForm();
+}
+ if(view==="goals")document.getElementById("goals").innerHTML=renderGoals();
+ if(view==="more")document.getElementById("more").innerHTML=renderMore();
+}
+document.querySelectorAll(".nav button,.bottom button").forEach(b=>b.addEventListener("click",()=>switchView(b.dataset.view)));
+
+function updateProgress(){
+ const list=days[dateKey()]||[],total=list.length,done=list.filter(x=>x.done).length;
+ document.getElementById("bar").style.width=(total?done/total*100:0)+"%";
+}
+function render(){switchView(document.querySelector(".view.active")?.id||"home");updateProgress()}
+document.getElementById("date").textContent=new Intl.DateTimeFormat("es-AR",{weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(new Date());
+render();
+
+if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js"));
+</script>
+</body>
+</html>
